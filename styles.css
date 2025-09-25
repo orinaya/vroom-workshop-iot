@@ -1,0 +1,74 @@
+/* couleur utilisé : https://colorhunt.co/palette/556b2f8fa31ec6d870eff5d2 */
+
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  background: #EFF5D2;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  background-color: rgb(198, 216, 112);
+  border-radius: 10%;
+  padding: 50px;
+}
+
+.container > div {
+  background-color: #EFF5D2;
+  border: 1px solid #556B2F;
+  border-radius: 10%;
+  padding: 10px;
+  font-size: 30px;
+  text-align: center;
+}
+
+.button_slide {
+  color: #556B2F;
+  border: 2px solid rgb(143, 163, 30);
+  border-radius: 0px;
+  padding: 18px 36px;
+  display: inline-block;
+  font-family: "Lucida Console", Monaco, monospace;
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0 #8FA31E;
+  -webkit-transition: ease-out 0.4s;
+  -moz-transition: ease-out 0.4s;
+  transition: ease-out 0.4s;
+}
+
+.slide_up:hover {
+  box-shadow: inset 0 100px 0 0 #8FA31E;
+}
+
+.slide_right:hover {
+  box-shadow: inset -400px 0 0 0 #8FA31E;
+}
+
+.slide_left:hover {
+  box-shadow: inset 400px 0 0 0 #8FA31E;
+}
+
+.slide_down:hover {
+  box-shadow: inset 0 -100px 0 0 #8FA31E;
+}
+
+.slide_middle:hover {
+  box-shadow: inset 0 0 0 50px #8FA31E;
+}
+
+.slide_diagonal:hover {
+  box-shadow: inset 400px 50px 0 0 #8FA31E;
+}
+
+#outer {
+  width: 364px;
+  margin: 50px auto 0 auto;
+  text-align: center;
+}
