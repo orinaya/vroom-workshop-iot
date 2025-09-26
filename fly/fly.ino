@@ -1,128 +1,203 @@
-// // DROITE => mauvais sens
-// const int INAD = 33; //INA corresponds to IN+
-// const int INBD = 32; //INB corresponds to IN-
-
-// // GAUCHE => bon sens
-// const int INAG = 26; //INA corresponds to IN+
-// const int INBG = 25; //INB corresponds to IN-
-
-// const int freq = 1000;
-// const int resolution = 12; // passé de 8 à 12 ^cq trop rapide
-
-// void setup() {
-//     Serial.begin(115200);
-//     Serial.println("coucou je démarre");
-
-//     ledcAttach(INBD, freq, resolution); // associe PWM directement à la pin
-//     pinMode(INAD, OUTPUT);
-
-//     ledcAttach(INAG, freq, resolution); // associe PWM directement à la pin
-//     pinMode(INBG, OUTPUT);
-
-//     Serial.println("coucou je suis prêt");
-// }
-
-// void loop() {
-//     // Turn counterclockwise
-//     Serial.println("vroom avion");
-
-//     digitalWrite(INAD, LOW);        // fixe le sens
-//     ledcWrite(INBD, 900);           // vitesse (0–255)
-//     digitalWrite(INBG, LOW);        // fixe le sens
-//     ledcWrite(INAG, 900);           // vitesse (0–255)
-//     delay(2000);
-
-//     // Serial.println("stop");
-//     // ledcWrite(INBD, 0);    
-//     // ledcWrite(INAG, 0);           // arrêt
-//     // delay(2000);
-// }
-
+#include <ezButton.h>
+// #include <TM1637Display.h>
 
 // DROITE => mauvais sens
-const int INAD = 33; // INA corresponds to IN+  (PWM possible)
-const int INBD = 32; // INB corresponds to IN-  (direction)
+const int INBG= 13; //INA corresponds to IN+
+const int INAG = 12; //INB corresponds to IN-
 
-// GAUCHE => bon sens
-const int INAG = 26; // INA corresponds to IN+  (PWM possible)
-const int INBG = 25; // INB corresponds to IN-  (direction)
+const int INBD = 26; //INA corresponds to IN+
+const int INAD = 25; //INB corresponds to IN-
 
-const int freq = 300;        // <-- teste 100, 200, 300, 500, 1000
-const int resolution = 12;   // 12 bits -> 0..4095
-const int pwmMax = (1 << resolution) - 1; // 4095
+ezButton button(18);
+const int Y = 35; // Y
+const int X = 34; // X
 
-// Paramètres pour aider le démarrage à faibles vitesses
-const int minRunThreshold = 900; // en pratique tu disais ~900 => garde ce seuil comme repère
-const int kickValue = pwmMax;    // valeur "coup de pouce" (plein)
-const int kickTimeMs = 60;       // durée du coup (ms) : 30..200 selon moteur
-const int rampStep = 100;        // pas d'incrément pendant le ramp (en unités PWM)
-const int rampDelayMs = 30;      // délai entre incréments pendant le ramp
+const int greenD = 21;
+const int yellowD = 22;
+const int redD = 23;
+
+const int greenG = 4;
+const int yellowG = 16;
+const int redG = 17;
+
+// const int dio = 2;
+// const int clk = 15;
+
+// TM1637Display display = TM1637Display(clk, dio);
+
+int valueX = 0;
+int valueY = 0;
+
+int vitesse = 0;
+
+int loopButton = 0;
+
+const int freq = 1000;
+const int resolution = 12; // passé de 8 à 12 ^cq trop rapide
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("coucou je démarre");
+    Serial.begin(115200);
+    Serial.println("coucou je démarre");
 
-  // Moteur droit : PWM sur INAD, direction via INBD
-  ledcAttach(INAD, freq, resolution);
-  pinMode(INBD, OUTPUT);
+    ledcAttach(INBD, freq, resolution); // associe PWM directement à la pin
+    ledcAttach(INAD, freq, resolution); // associe PWM directement à la pin
+    ledcAttach(INAG, freq, resolution); // associe PWM directement à la pin
+    ledcAttach(INBG, freq, resolution); // associe PWM directement à la pin
 
-  // Moteur gauche : PWM sur INAG, direction via INBG
-  ledcAttach(INAG, freq, resolution);
-  pinMode(INBG, OUTPUT);
+    // servo.attach(15);
+    // servo.setPeriodHertz(50);
+    // servo.attach(15, 500, 2400); // Largeur minimale et maximale de l'impulsion (en µs) pour aller de 0° à 180°
 
-  Serial.println("coucou je suis prêt");
-}
+    // display.clear();
+    // display.setBrightness(5);
 
-// met la direction et applique la vitesse en % (0..100)
-// percent -> 0..100
-void setSpeed(int pin_pwm, int pin_dir, int percent) {
-  if (percent <= 0) {
-    // arrêt
-    ledcWrite(pin_pwm, 0);
-    return;
-  }
-  if (percent > 100) percent = 100;
+    pinMode(Y, INPUT);
+    pinMode(X, INPUT);
 
-  // calcule target PWM sur 0..pwmMax
-  int target = (long)percent * pwmMax / 100;
+    pinMode(redG, OUTPUT);
+    pinMode(yellowG, OUTPUT);
+    pinMode(greenG, OUTPUT);
 
-  // si target est faible et inférieur au seuil minimal de démarrage,
-  // on lance un kick puis on rampe doucement vers la valeur cible
-  if (target > 0 && target < minRunThreshold) {
-    // bouton d'aide : court coup à pleine puissance
-    ledcWrite(pin_pwm, kickValue);
-    delay(kickTimeMs);
+    pinMode(redD, OUTPUT);
+    pinMode(yellowD, OUTPUT);
+    pinMode(greenD, OUTPUT);
 
-    // descendre vers la valeur cible en rampant (évite de "sauter")
-    int current = kickValue;
-    while (current > target) {
-      current -= rampStep;
-      if (current < target) current = target;
-      ledcWrite(pin_pwm, current);
-      delay(rampDelayMs);
-    }
-  } else {
-    // valeur suffisante : on écrit directement
-    ledcWrite(pin_pwm, target);
-  }
+    Serial.println("coucou je suis prêt");
+
+    delay(5000);
+    digitalWrite(redG, HIGH);
+    digitalWrite(redD, HIGH);
+    delay(500);
+    digitalWrite(redG, LOW);
+    digitalWrite(redD, LOW);
+    delay(500);
+    digitalWrite(redG, HIGH);
+    digitalWrite(redD, HIGH);
+    delay(500);
+    digitalWrite(redG, LOW);
+    digitalWrite(redD, LOW);
+    delay(500);
+    digitalWrite(redG, HIGH);
+    digitalWrite(redD, HIGH);
+    delay(500);
+    digitalWrite(redG, LOW);
+    digitalWrite(redD, LOW);
+    delay(500);
+    digitalWrite(yellowG, HIGH);
+    digitalWrite(yellowD, HIGH);
+    delay(500);
+    digitalWrite(yellowG, LOW);
+    digitalWrite(yellowD, LOW);
+    delay(500);
+    
+    digitalWrite(greenG, HIGH);
+    digitalWrite(greenD, HIGH); 
+    delay(500);
+    digitalWrite(greenG, LOW);
+    digitalWrite(greenD, LOW); 
 }
 
 void loop() {
-  Serial.println("Test vitesse très basse (10%)");
-  // Sens avant : ici LOW comme tu avais (ajuste si nécessaire)
-  digitalWrite(INBD, LOW);
-  digitalWrite(INBG, LOW);
-  setSpeed(INAD, INBD, 50); // 10% pour moteur droit
-  setSpeed(INAG, INBG, 50); // 10% pour moteur gauche
-  delay(3000);
+  // display.showNumberDec(1234);
+  Serial.println("vroom avion");
 
-  Serial.println("Test vitesse encore plus petite (5%)");
-  setSpeed(INAD, INBD, 20);
-  setSpeed(INAG, INBG, 20);
-  delay(3000);
+  button.loop(); // MUST call the loop() function first
+  int btnState = button.getState();
 
-  // Serial.println("Test stop");
-  // setSpeed(INAD, INBD, 0);
-  // setSpeed(INAG, INBG, 0);
-  // delay(3000);
+  if(btnState == 1){
+    loopButton += 1;
+    delay(1000);
+    Serial.println("button pressed");
+  }
+
+  switch(loopButton){
+    case 1:
+      Serial.println("loop 1");
+      digitalWrite(redG, HIGH);
+      digitalWrite(redD, HIGH); 
+      break;
+    case 2:
+      Serial.println("loop 2");
+      digitalWrite(redG, LOW);
+      digitalWrite(redD, LOW); 
+      digitalWrite(yellowG, HIGH);
+      digitalWrite(yellowD, HIGH); 
+      break;
+    case 3:
+    Serial.println("loop 3");
+      digitalWrite(yellowG, LOW);
+      digitalWrite(yellowD, LOW); 
+      digitalWrite(greenG, HIGH);
+      digitalWrite(greenD, HIGH); 
+      break;
+    case 4:
+      digitalWrite(greenG, LOW);
+      digitalWrite(greenD, LOW);
+      digitalWrite(redG, HIGH);
+      digitalWrite(redD, HIGH);
+      delay(200);
+      digitalWrite(redG, LOW);
+      digitalWrite(redD, LOW); 
+      digitalWrite(yellowG, HIGH);
+      digitalWrite(yellowD, HIGH);
+      delay(200);
+      digitalWrite(yellowG, LOW);
+      digitalWrite(yellowD, LOW); 
+      digitalWrite(greenG, HIGH);
+      digitalWrite(greenD, HIGH); 
+      delay(200);
+      break;
+    case 5:
+      digitalWrite(greenG, LOW);
+      digitalWrite(greenD, LOW);
+      loopButton = 0;
+      break;
+    default:
+    Serial.println("rien");
+    break;
+  }
+ 
+  valueX = analogRead(X);
+  valueY = analogRead(Y);
+
+  if(valueX>2500){
+    vitesse = valueX - 2400;
+    ledcWrite(INBD, vitesse);
+    ledcWrite(INBG, vitesse);
+    digitalWrite(greenG, HIGH);
+    digitalWrite(greenD, HIGH); 
+  }
+  else if(valueX<1600){
+    vitesse = 1600 - valueX;
+    ledcWrite(INAD, vitesse);
+    ledcWrite(INAG, vitesse);
+    digitalWrite(redG, HIGH);
+    digitalWrite(redD, HIGH);
+  }
+  else{
+    digitalWrite(greenG, LOW);
+    digitalWrite(greenD, LOW);
+    digitalWrite(redG, LOW);
+    digitalWrite(redD, LOW);
+    ledcWrite(INBD, 0);
+    ledcWrite(INAD, 0);
+    ledcWrite(INBG, 0);
+    ledcWrite(INAG, 0);
+  }
+
+  if(valueY>2500){
+    vitesse = valueY - 2400;
+    ledcWrite(INAG, vitesse);
+    digitalWrite(yellowD, HIGH);
+  }
+  else if(valueY<1600){
+    vitesse = 1600 - valueY;
+    ledcWrite(INAD, vitesse);
+    digitalWrite(yellowG, HIGH);
+  }
+  else{
+    digitalWrite(yellowG, LOW);
+    digitalWrite(yellowD, LOW);
+  }
 }
+
